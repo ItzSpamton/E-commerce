@@ -486,15 +486,15 @@ const eliminarProducto = async (req, res) => {
       });
     }
 
-    //el hook beforeDestoy se encarga de eliminar la imagen
+    //el hook beforeDestroy de producto se encarga de eliminar la imagen
     await producto.destroy();
 
+    // Eliminar producto
     res.json({
       success: true,
       message: "Producto eliminado exitosamente",
     });
-
-} catch (error) {
+  } catch (error) {
     console.error("Error al eliminar producto:", error);
     res.status(500).json({
       success: false,
@@ -507,83 +507,30 @@ const eliminarProducto = async (req, res) => {
 /**
  * Actualizar stock de un producto
  * PATCH /api/admin/productos/:id/stock
- * body: {cantidad. operacion: 'aumentar' o 'reducir' | 'establecer'}
- * @param {Object} req request express
- * @param {Object} res response express
+ * body { Cantidad, operacion: 'aumentar' | 'reducir' | 'establecer' }
  */
+
 const actualizarStock = async (req, res) => {
   try {
     const { id } = req.params;
     const { cantidad, operacion } = req.body;
 
     if (!cantidad || !operacion) {
-        return res.status(400).json({
-            succes: false,
-            message: `Se requiere cantidad y operacion`
-        });
-    }
-    
-    const cantidadNum = parseInt
-}
-}
-
-    // Validacion varifica que no tenga productos
-    const productos = await Producto.count({
-      where: { subcategoriaId: id },
-    });
-    if (productos > 0) {
       return res.status(400).json({
         success: false,
-        message: `No se puede eliminar el producto por que tiene ${productos} 
-                productos asociados usa PATCH/api/admin/productos/:id/ toogle para desactivarlo en lugar de eliminarlo`,
+        message: "La cantidad y la operación son obligatorias",
       });
     }
 
-    // Eliminar producto
-    await producto.destroy();
-    // Respuesta exitosa
-    res.json({
-      success: true,
-      message: "Producto eliminado exitosamente",
-    });
-  } catch (error) {
-    console.error("Error al eliminar producto:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error al eliminar producto",
-      error: error.message,
-    });
-  }
-};
+    const cantidadNum = parseInt(cantidad);
+    if (cantidadNum < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "La cantidad debe ser un número positivo",
+      });
+    }
 
-/**
- * Obtener estadísticas de un producto
- * GET /api/admin/productos/:id/estadisticas
- * Valor total de inventario (precio * stock), stock total
- * @param {*} req
- * @param {*} res
- */
-const getEstadisticasProducto = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    //buscar producto
-    const producto = await Producto.findByPk(id, {
-      include: [
-        {
-          model: Subcategoria,
-          as: "subcategoria",
-          attributes: ["id", "nombre"],
-          include: [
-            {
-              model: Categoria,
-              as: "categoria",
-              attributes: ["id", "nombre"],
-            },
-          ],
-        },
-      ],
-    });
+    const producto = await Producto.findByPk(id);
     if (!producto) {
       return res.status(404).json({
         success: false,
@@ -591,34 +538,53 @@ const getEstadisticasProducto = async (req, res) => {
       });
     }
 
-    //Calcular estadisticas
-    const valorTotalDeInventario = producto.precio * producto.stock;
+    let nuevoStock;
+    switch (operacion) {
+      case "aumentar":
+        nuevoStock = producto.aumentarStock(cantidadNum);
+        break;
+      case "reducir":
+        if (cantidadNum > producto.stock) {
+          return res.status(400).json({
+            success: false,
+            message: `No hay suficiente stock. Stock disponible: ${producto.stock}`,
+          });
+        }
+        nuevoStock = producto.reducirStock(cantidadNum);
+        break;
+      case "establecer":
+        nuevoStock = cantidadNum;
+        break;
+      default:
+        return res.status(400).json({
+          success: false,
+          message: "Operación no válida",
+        });
+    }
+
+    producto.stock = nuevoStock;
+    await producto.save();
 
     res.json({
       success: true,
-      message: "Estadísticas del producto obtenidas correctamente",
+      message: `Stock ${operacion === "aumentar" ? "aumentado" : operacion === "reducir" ? "reducido" : "establecido"} exitosamente`,
       data: {
-        producto: {
-          id: producto.id,
-          nombre: producto.nombre,
-          precio: producto.precio,
-          stock: producto.stock,
-          activo: producto.activo,
-          subcategoriaId: producto.subcategoriaId,
-        },
-        estadisticas: {
-          inventario: {
-            valorTotal: valorTotalDeInventario.toFixed(2),
-            stockTotal: producto.stock,
-          },
-        },
+        productoId: producto.id,
+        nombre: producto.nombre,
+        stockAnterior:
+          operacion === "establecer"
+            ? null
+            : operacion == "aumentar"
+              ? producto.stock - cantidadNum
+              : producto.stock + cantidadNum,
+        stockNuevo: producto.stock,
       },
     });
   } catch (error) {
-    console.error("Error en getEstadisticasProducto:", error);
+    console.error("Error al actualizar stock:", error);
     res.status(500).json({
       success: false,
-      message: "Error al obtener las estadísticas del producto",
+      message: "Error al actualizar stock",
       error: error.message,
     });
   }
@@ -631,5 +597,5 @@ module.exports = {
   actualizarProducto,
   toggleProducto,
   eliminarProducto,
-  getEstadisticasProducto,
-};  
+  actualizarStock,
+};
