@@ -290,16 +290,82 @@ const getPedidoById = async (req, res) => {
         const pedido = await Pedido.findOne({
             where,
             include: [
-                model: Usuario,
-                as: 'usuario',
-                attributes: ['id', 'nombre'],
-        }
+                {
+                    model: Usuario,
+                    as: 'usuario',
+                    attributes: ['id', 'nombre'],
+                }
             ]
         });
 
-    
+/**
+ * admin obtener todos los pedidos 
+ * get/api/admin/pedidos
+ * query ?estado=pendiente&usuarioId=1&pagina=1&limite=10
+ */
+const getAllPedidos = async (req, res) => {
+    try {
+        const { estado, usuarioId, pagina = 1, limite} = 20 = req.query;
+    }
+    //filtros 
+    const where = {};
+    if (estado) where.estado = estado;
+    if (usuarioId) where.usuarioId = usuarioId;
+
+    //paginacion
+    const offset = (parseInt(pagina) - 1) * parseInt(limite);
+
+    //consultar pedidos
+    const { count, rows: pedidos } = await Pedido.findAndCountAll({
+        where,
+        include: [
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['id', 'nombre'],
+
+    ]
+    }
+    )};
 
 
 
 
-                
+
+
+
+/**
+ * adminactualizar estado del pedido
+ * PUT/api/admin/pedidos/:id/estado
+ *body: { estado }  
+ */             
+
+ const actualizarEstadoPedido = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { estado } = req.body;
+
+        //validar estado
+        const estadosValidos = ['pendiente', 'enviado', 'entregado', 'cancelado'];
+        if (!estadosValidos.includes(estado)) {
+            return res.status(400).json({
+                success: false,
+                message: `Estado invalido. Los estados validos son: ${estadosValidos.join(', ')}`,
+            });
+        }
+
+        //buscar pedido
+        const pedido = await Pedido.findByPk(id);
+
+        if (!pedido) {
+            return res.status(404).json({
+                success: false,
+                message: "Pedido no encontrado",
+            });
+        }
+
+        //actualizar estado
+        pedido.estado = estado;
+        await pedido.save();
+
+        //respuesta exitosa
+        
