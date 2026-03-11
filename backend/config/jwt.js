@@ -88,5 +88,5 @@ const extractToken = (authHeader) => {
 module.exports = {
     generateToken,
     verifyToken,
-    extractToken
+    extractToken,
 };
