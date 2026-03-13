@@ -17,10 +17,10 @@ const path = require("path");
 require("dotenv").config();
 
 //importar configuración de base de datos
-const dbConfig = require("./backend/config/database");
+const dbConfig = require("./config/database");
 
 //importar modelos y asociaciones
-const { initAssociations } = require("./backend/models");
+const { initAssociations } = require("./models");
 
 //Importar seeders
 const { runSeeders } = require("./seeders/adminseeder");
@@ -210,7 +210,7 @@ process.on("SIGINT", () => {
 
 //capturar los errores no manejados
 Process.on("unhandledRejection", (error) => {
-  console.error("X Error fatal al iniciar el servidor:", err);
+  console.error("X Error fatal al iniciar el servidor:", error);
   process.exit(1);
 });
 

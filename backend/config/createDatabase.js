@@ -1,57 +1,59 @@
 /**
- * script de inializacion de la db
- * este crea la db si no existe
- * sebe ejecitarse una sola vez antes de iniciar el server
+ * Script de inicializacion de la base de datos
+ * este script crea la base de datas si no existe 
+ * y luego ejecutarse una sola vez antes de iniciar el servidor 
  */
 
-// importar mysql2 para la construccion directa
+// importar mysql2 para la conexion directa
 const mysql = require('mysql2/promise');
 
-// importar dontev para cargar las variables de entorno
+// impotar dotenv para cargar las variables de entorno
 require('dotenv').config();
 
-// funcion para crear la db
+// funcion para crear la base de datos 
 const createDatabase = async () => {
-    let connection;
+   let connection;
 
-    try {
-        console.log('iniciando conexion a db ... \n');
-        
-        // crear conexion a mysql sin especificar la db
-        console.log('conectando a mysql ... \n');
-        connection = await mysql.createConnection({
-            host: process.env.DB_HOST || 'localhost',
-            port: process.env.DB_PORT || 3306,
-            user: process.env.DB_USER || 'root',
-            password: process.env.DB_PASSWORD || ''
-        });
+   try {
+    console.log('iniciando creacion de la base de datos ...\n');
 
-        console.log('conexion a mysql establecida \n');
+    //conectar a MySQL sin especificar la base de datos
+    console.log('Conectando a MySQL ...');
+    connection = await mysql.createConnection({
+        host: process.env.DB_HOST || 'localhost', // XAPPM
+        port: process.env.DB_PORT || 3306, // MySQL en XAMPP suele ser 3306 el puerto
+        user: process.env.DB_USER || 'root', // Nombre de defecto en MySQL
+        password: process.env.DB_PASSWORD || ''
+    });
+   
+    console.log('Conexion a MySQL establecida\n');
 
-        // crear la db si no existe
-        const dbName = process.env.DB_NAME || 'ecommerce_db';
-        console.log(`creando la base de datos ${dbName}... \n`);
-        await connection.query(`CREATE DATABASE IF NOT EXISTS \`'${dbName}' 
-        creada/verificada correctamente\n`);
+    //crear la base de datos si no existe
+    const dbName = process.env.DB_NAME || 'ecommerce_db';
+    console.log(`Creando base de datos: ${dbName}...`);
 
-        //cerrar la conexion
+
+    await connection.query(`CREATE DATABASE IF NOT EXISTS \`'${dbName}' creada/verificada existosamente\n'`);
+
+    //cerrar la conexion
+    await connection.end();
+
+    console.log(' ¡proceso completado! ahora puedes iniciar el servidor con: npm start\n');
+   } catch (error) {
+  
+    console.error('Error al crear la base de datos:', error.message);
+    console.error('\n verifica que:');
+    console.error('1. XAMP este corriendo');
+    console.error('2. MySQL este iniciando en XAMPP');
+    console.error('3. las credenciales en .env sean correctas\n');
+
+    if (connection) {
         await connection.end();
+   }
 
-        console.log('¡proceso completado! ahora puedes iniciar el server con: npm start\n');
-    } catch (error) {
-        console.error('error al crear la base de datos:', error.message);
-        console.error('verifica que:');
-        console.error('1. xampp esta corriendo');
-        console.error('2. mysql este iniciado en xampp');
-        console.error('3. las credenciales en el .env sean correctas');
-
-        if (connection) {
-            await connection.end();
-        }
-
-        process.exit(1);
-    }
+    process.exit(1);
+   }
 };
 
-// ejecutar la funcion
+//ejecutar la funcion
 createDatabase();
